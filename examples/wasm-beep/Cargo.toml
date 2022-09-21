@@ -17,10 +17,12 @@ lto = true
 #default = ["wee_alloc"]
 
 [dependencies]
-cpal = { path = "../..", features = ["wasm-bindgen"] }
+# cpal = { path = "../..", features = ["wasm-bindgen"] }
 # The `wasm-bindgen` crate provides the bare minimum functionality needed
 # to interact with JavaScript.
 wasm-bindgen = "0.2.45"
+glicol_synth = "0.12.8"
+cpal = {version = "0.14.0", features = ["wasm-bindgen"] }
 
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
 # compared to the default allocator's ~10K. However, it is slower than the default
@@ -39,3 +41,17 @@ features = ["console"]
 # in debug mode.
 [target."cfg(debug_assertions)".dependencies]
 console_error_panic_hook = "0.1.5"
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = ['-Oz']
+strip = true
+opt-level = "z" # makes everything slower though
+lto = true
+panic = "abort"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-Oz']
+strip = true
+opt-level = "z" # makes everything slower though
+lto = true
+panic = "abort"

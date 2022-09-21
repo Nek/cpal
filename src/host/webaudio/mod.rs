@@ -5,7 +5,8 @@ extern crate web_sys;
 use self::js_sys::eval;
 use self::wasm_bindgen::prelude::*;
 use self::wasm_bindgen::JsCast;
-use self::web_sys::{AudioContext, AudioContextOptions};
+#[allow(unused_imports)]
+use self::web_sys::{console, AudioContext, AudioContextOptions, Document, Event, Window};
 use crate::traits::{DeviceTrait, HostTrait, StreamTrait};
 use crate::{
     BackendSpecificError, BufferSize, BuildStreamError, Data, DefaultStreamConfigError,
@@ -217,15 +218,28 @@ impl DeviceTrait for Device {
         // Create the WebAudio stream.
         let mut stream_opts = AudioContextOptions::new();
         stream_opts.sample_rate(config.sample_rate.0 as f32);
-        let ctx = Arc::new(
-            AudioContext::new_with_context_options(&stream_opts).map_err(
-                |err| -> BuildStreamError {
-                    let description = format!("{:?}", err);
-                    let err = BackendSpecificError { description };
-                    err.into()
-                },
-            )?,
-        );
+        let _ctx = AudioContext::new_with_context_options(&stream_opts).map_err(
+            |err| -> BuildStreamError {
+                let description = format!("{:?}", err);
+                let err = BackendSpecificError { description };
+                err.into()
+            },
+        )?;
+
+        let ctx = Arc::new(_ctx.clone());
+
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+
+        let closure = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
+            _ctx.resume();
+        });
+
+        document
+            .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())
+            .unwrap();
+
+        closure.forget();
 
         // A container for managing the lifecycle of the audio callbacks.
         let mut on_ended_closures: Vec<Arc<RwLock<Option<Closure<dyn FnMut()>>>>> = Vec::new();

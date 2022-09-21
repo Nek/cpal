@@ -1,6 +1,8 @@
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 
+use glicol_synth::{synth::PatternSynth, AudioContext, AudioContextBuilder};
+
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
 //
@@ -45,14 +47,20 @@ fn run<T>(device: &cpal::Device, config: &cpal::StreamConfig) -> Stream
 where
     T: cpal::Sample,
 {
-    let sample_rate = config.sample_rate.0 as f32;
     let channels = config.channels as usize;
 
-    // Produce a sinusoid of maximum amplitude.
-    let mut sample_clock = 0f32;
+    let mut context = AudioContextBuilder::<1>::new()
+        .sr(config.sample_rate.0 as usize)
+        .channels(2)
+        .build();
+
+    let node_a = context.add_mono_node(PatternSynth::new(vec![(0.0, 60.), (0.5, 72.)]));
+
+    context.chain(vec![node_a, context.destination]);
+
     let mut next_value = move || {
-        sample_clock = (sample_clock + 1.0) % sample_rate;
-        (sample_clock * 440.0 * 2.0 * 3.141592 / sample_rate).sin()
+        let out = context.next_block()[0][0];
+        out
     };
 
     let err_fn = |err| console::error_1(&format!("an error occurred on stream: {}", err).into());
