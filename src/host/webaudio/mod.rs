@@ -5,7 +5,7 @@ extern crate web_sys;
 use self::js_sys::eval;
 use self::wasm_bindgen::prelude::*;
 use self::wasm_bindgen::JsCast;
-use self::web_sys::{AudioContext, AudioContextOptions};
+use self::web_sys::{AudioBuffer, AudioContext, AudioContextOptions};
 use crate::traits::{DeviceTrait, HostTrait, StreamTrait};
 use crate::{
     BackendSpecificError, BufferSize, BuildStreamError, Data, DefaultStreamConfigError,
@@ -24,6 +24,17 @@ pub struct Devices(bool);
 pub struct Device;
 
 pub struct Host;
+
+#[wasm_bindgen(inline_js = " \
+export function copy_audio_buffer(dest, src, channel) {\
+    const standalone = [...src];\
+    const buffer = new Float32Array(standalone);\
+    dest.copyToChannel(buffer, channel);\
+}\
+")]
+extern "C" {
+    fn copy_audio_buffer(dest: &AudioBuffer, src: &[f32], channel: i32);
+}
 
 pub struct Stream {
     ctx: Arc<AudioContext>,
